@@ -78,10 +78,36 @@ Instruções globais do projeto para o agente: stack, regras de desenvolvimento,
 
 ## Como usar
 
-### Projeto novo (recomendado)
+### Fluxo mais comum — repositório já criado no GitHub
+
+Você já criou o repositório no GitHub, clonou na máquina e está dentro da pasta. Basta rodar dois comandos:
 
 ```powershell
-# 1. Criar o projeto com Better-T-Stack
+# 1. Instalar a stack Better-T-Stack na pasta atual
+bun create better-t-stack@latest . `
+  --frontend tanstack-router `
+  --backend hono `
+  --runtime bun `
+  --api trpc `
+  --auth better-auth `
+  --database postgres `
+  --orm drizzle `
+  --db-setup docker `
+  --package-manager bun `
+  --git `
+  --addons evlog,skills,turborepo,ultracite `
+  --examples none
+
+# 2. Instalar agents, hooks, skills, OpenSpec e CLAUDE.md
+irm https://raw.githubusercontent.com/devturco/thiago-dev-template/main/setup.ps1 | iex
+```
+
+O `.` no comando do Better-T-Stack instala tudo na pasta atual sem criar subpasta.
+
+### Projeto novo do zero (sem repositório prévio)
+
+```powershell
+# 1. Criar o projeto com Better-T-Stack (cria a pasta automaticamente)
 bun create better-t-stack@latest meu-app `
   --frontend tanstack-router `
   --backend hono `
@@ -99,18 +125,15 @@ bun create better-t-stack@latest meu-app `
 # 2. Entrar na pasta
 cd meu-app
 
-# 3. Rodar o setup
-irm https://raw.githubusercontent.com/SEU-USUARIO/thiago-dev-template/main/setup.ps1 | iex
+# 3. Instalar agents, hooks, skills, OpenSpec e CLAUDE.md
+irm https://raw.githubusercontent.com/devturco/thiago-dev-template/main/setup.ps1 | iex
 ```
 
-### Projeto existente
+### Projeto existente (adicionar setup sem reinstalar stack)
 
 ```powershell
-# Entrar na pasta do projeto
-cd meu-projeto-existente
-
-# Rodar o setup
-irm https://raw.githubusercontent.com/SEU-USUARIO/thiago-dev-template/main/setup.ps1 | iex
+# Dentro da pasta do projeto existente
+irm https://raw.githubusercontent.com/devturco/thiago-dev-template/main/setup.ps1 | iex
 ```
 
 O script nunca sobrescreve um `CLAUDE.md` que já existe no projeto.
