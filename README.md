@@ -100,7 +100,7 @@ bun create better-t-stack@latest meu-app `
 cd meu-app
 
 # 3. Rodar o setup
-irm https://raw.githubusercontent.com/devturco/thiago-dev-template/main/setup.ps1 | iex
+irm https://raw.githubusercontent.com/SEU-USUARIO/thiago-dev-template/main/setup.ps1 | iex
 ```
 
 ### Projeto existente
@@ -110,7 +110,7 @@ irm https://raw.githubusercontent.com/devturco/thiago-dev-template/main/setup.ps
 cd meu-projeto-existente
 
 # Rodar o setup
-irm https://raw.githubusercontent.com/devturco/thiago-dev-template/main/setup.ps1 | iex
+irm https://raw.githubusercontent.com/SEU-USUARIO/thiago-dev-template/main/setup.ps1 | iex
 ```
 
 O script nunca sobrescreve um `CLAUDE.md` que já existe no projeto.
@@ -164,7 +164,7 @@ ccpi install docker
 ccpi install owasp-security
 
 # Ou copiar manualmente para:
-# C:\Users\devturco\.claude\skills\
+# C:\Users\SEU-USUARIO\.claude\skills\
 ```
 
 ---
