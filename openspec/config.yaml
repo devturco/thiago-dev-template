@@ -1,20 +1,43 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+# Project context — shown to AI when creating artifacts
+# Stack confirmed via better-t-stack wizard (01/jul/2026)
+context: |
+  Tech stack (CONFIRMED — do not deviate without explicit user approval):
+    - Frontend: React 19 + TanStack Router (file-based)
+    - Backend: Hono (NOT Express, NOT Fastify)
+    - API: tRPC v11 (NOT oRPC, NOT REST) — exception: legacy CondoHub uses oRPC
+    - ORM: Drizzle ORM
+    - DB: PostgreSQL self-managed (Docker local, Railway prod). NEVER Neon, NEVER Supabase.
+    - Auth: Better-Auth (never roll own)
+    - Package manager / runtime: bun (never npm/yarn/pnpm)
+    - Monorepo: Turborepo
+    - Lint/format: Ultracite (Biome-based) — run `bun check:fix` before commit
+    - Observability: evlog
+    - Deploy: Railway
+    - Validation: Zod 4 (always import from `zod/v4`)
+    - Tests: vitest via `bun test`
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+  Conventions:
+    - Conventional commits: feat:, fix:, chore:, refactor:, docs:
+    - One PR per feature (never bundle unrelated features)
+    - Each feature ships in its own branch + git worktree
+    - Definition of Done: `bun typecheck && bun check && bun test`
+    - Specs are source of truth: read openspec/changes/<name>/proposal.md before implementing
+    - Never include Claude as co-author
+    - PT-BR communication with user; English in code/comments
+
+# Per-artifact rules
+rules:
+  proposal:
+    - Keep proposals under 500 words
+    - Always include a "Non-goals" section
+    - List affected files explicitly
+    - Define acceptance scenarios for every requirement
+  tasks:
+    - Break tasks into chunks of max 2 hours each
+    - Each task must have a clear test/verify step
+    - Order tasks by dependency (schema → backend → frontend → tests)
+  design:
+    - Document non-obvious decisions only (not "we use React")
+    - List trade-offs when alternatives exist
