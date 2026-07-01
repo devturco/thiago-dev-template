@@ -1,8 +1,8 @@
 # thiago-dev-template
 
-Template de produtividade para projetos Better-T-Stack com Claude Code e GitHub Copilot.
+Template de produtividade para projetos Better-T-Stack com Claude Code, GitHub Copilot e Hermes Agent.
 
-Instala em qualquer projeto novo: agents, hooks, skills, OpenSpec e CLAUDE.md configurados para a stack padrão.
+Instala em qualquer projeto novo: agents, hooks, skills, OpenSpec, `CLAUDE.md` (Claude Code), `AGENTS.md` (multi-tool) e `.github/copilot-instructions.md` (Copilot Agent) configurados para a stack padrão.
 
 ---
 
@@ -13,17 +13,30 @@ Instala em qualquer projeto novo: agents, hooks, skills, OpenSpec e CLAUDE.md co
 | Frontend | TanStack Router + React 19 |
 | Backend | Hono |
 | Runtime | Bun |
-| API | tRPC |
+| API | tRPC v11 |
 | ORM | Drizzle |
 | Banco | PostgreSQL (Docker local, Railway produção) |
 | Auth | Better-Auth |
 | Monorepo | Turborepo |
 | Linting | Ultracite |
-| Observabilidade | evlog + Axiom |
+| Validação | Zod 4 (`zod/v4`) |
+| Testes | vitest via `bun test` |
+| Observabilidade | evlog |
+
+> **Stack confirmada via better-t-stack wizard em 01/jul/2026.** Não trocar componentes sem aprovação explícita. **NUNCA** usar Neon ou Supabase — PostgreSQL é self-managed.
 
 ---
 
 ## O que este template instala
+
+### Arquivos de instrução por ferramenta
+
+| Arquivo | Quem lê automaticamente | Conteúdo |
+|---|---|---|
+| `CLAUDE.md` | Claude Code | Instruções detalhadas (stack, convenções, anti-patterns, OpenSpec workflow, paralelismo) |
+| `AGENTS.md` | Aider, Continue, Cursor (via @-mention), Codex | Versão multi-tool do workflow |
+| `.github/copilot-instructions.md` | VSCode Copilot Agent | Versão otimizada pro Copilot |
+| `openspec/config.yaml` | OpenSpec CLI (contexto em toda criação de artifact) | Stack + convenções injetadas em cada spec |
 
 ### `.claude/agents/`
 Subagentes especializados que o Claude Code pode invocar:
@@ -44,7 +57,7 @@ Automações que rodam em momentos específicos do ciclo de desenvolvimento:
 - `stop-notify` — notificação no Windows quando o agente termina uma tarefa
 
 ### `.claude/skills/`
-24 skills cobrindo toda a stack:
+23 skills cobrindo toda a stack:
 
 **Da fadhlirahim/claude-starter-kit** (feito para esta stack exata):
 `add-feature`, `add-trpc-router`, `clean-branches`, `commit`, `compound`, `debug`, `docs`, `migrate`, `push`, `refactor`, `review`, `scaffold`, `setup`, `simplify`, `test`
@@ -69,10 +82,7 @@ OpenSpec configurado para GitHub Copilot:
 Estrutura pronta para Spec-Driven Development:
 - `changes/` — features pendentes de implementação
 - `specs/` — especificações como fonte da verdade
-- `config.yaml` — configuração do OpenSpec
-
-### `CLAUDE.md`
-Instruções globais do projeto para o agente: stack, regras de desenvolvimento, o que sempre fazer, o que nunca fazer, fluxo de trabalho e comandos.
+- `config.yaml` — stack + convenções + regras por artifact
 
 ---
 
@@ -86,7 +96,7 @@ Você já criou o repositório no GitHub, clonou na máquina e está dentro da p
 # 1. Instalar a stack Better-T-Stack na pasta atual
 bun create better-t-stack@latest . --frontend tanstack-router --backend hono --runtime bun --api trpc --auth better-auth --payments none --database postgres --orm drizzle --db-setup docker --package-manager bun --git --web-deploy none --server-deploy none --install --addons evlog skills turborepo ultracite --examples none
 
-# 2. Instalar agents, hooks, skills, OpenSpec e CLAUDE.md
+# 2. Instalar agents, hooks, skills, OpenSpec, CLAUDE.md, AGENTS.md e copilot-instructions
 irm https://raw.githubusercontent.com/devturco/thiago-dev-template/main/setup.ps1 | iex
 ```
 
@@ -101,7 +111,7 @@ bun create better-t-stack@latest meu-app --frontend tanstack-router --backend ho
 # 2. Entrar na pasta
 cd meu-app
 
-# 3. Instalar agents, hooks, skills, OpenSpec e CLAUDE.md
+# 3. Instalar agents, hooks, skills, OpenSpec, CLAUDE.md, AGENTS.md e copilot-instructions
 irm https://raw.githubusercontent.com/devturco/thiago-dev-template/main/setup.ps1 | iex
 ```
 
@@ -116,25 +126,61 @@ O script nunca sobrescreve um `CLAUDE.md` que já existe no projeto.
 
 ---
 
-## Fluxo de trabalho padrão
+## Fluxo de trabalho padrão (1 feature)
 
 ```
 Nova feature
       ↓
-/opsx:propose [descrição]     ← OpenSpec cria a spec
+/opsx:propose [descrição]     ← OpenSpec cria a spec (proposal.md + design.md + tasks.md)
       ↓
-Revisar arquivos em openspec/changes/
+GATE: revisar proposal.md + design.md  ← VOCÊ precisa aprovar antes do apply
       ↓
-/opsx:apply                   ← implementa seguindo a spec
+/opsx:apply                   ← implementa seguindo tasks.md
       ↓
-/security-reviewer            ← revisão adversarial de segurança
+Code review (entre tasks ou antes do PR)
       ↓
-bun run lint                  ← Ultracite/Biome
+bun typecheck && bun check && bun test
       ↓
-/opsx:archive                 ← arquiva a feature concluída
+git push -u origin HEAD && gh pr create --fill
+      ↓
+/opsx:archive                 ← arquiva a feature concluída (após merge)
       ↓
 Deploy no Railway
 ```
+
+---
+
+## Fluxo paralelo (2+ features independentes)
+
+Quando você tem **2 ou mais features independentes** pra entregar (não compartilham arquivos/schema), use worktrees paralelos:
+
+```bash
+# 1. Cria um worktree por feature
+git worktree add .worktrees/<repo>-<feat-a> -b feat/a
+git worktree add .worktrees/<repo>-<feat-b> -b feat/b
+git worktree add .worktrees/<repo>-<feat-c> -b feat/c
+
+# 2. Em cada worktree, abre o agente (Claude Code, Copilot Agent, Hermes, etc.)
+cd .worktrees/<repo>-feat-a && claude    # sessão A
+cd .worktrees/<repo>-feat-b && claude    # sessão B
+cd .worktrees/<repo>-feat-c && claude    # sessão C
+
+# 3. Cada sessão implementa sua feature de forma isolada
+#    Cada agente recebe brief com escopo + arquivos proibidos + DoD
+
+# 4. Quando cada uma termina, push + PR separado
+cd .worktrees/<repo>-feat-a
+bun typecheck && bun check && bun test
+git push -u origin feat/a
+gh pr create --fill
+# Repete pra B e C
+```
+
+**Hard-gate:** rode o **independence audit** antes de paralelizar. Se as features compartilham schema/arquivo/port, **serialize** em vez de paralelizar. Detalhes em `CLAUDE.md` seção "Parallel Features Workflow".
+
+**Quando usar:** "tenho 2+ features pra entregar", "paraleliza X, Y, Z", "em paralelo".
+
+**Quando NÃO usar:** 1 feature só, features com dependência, fix pequeno, refactor em arquivo compartilhado.
 
 ---
 
@@ -172,8 +218,10 @@ ccpi install owasp-security
 
 ```powershell
 # Rodar setup novamente — sobrescreve tudo exceto CLAUDE.md
-.\setup.ps1
+irm https://raw.githubusercontent.com/devturco/thiago-dev-template/main/setup.ps1 | iex
 ```
+
+> **Mudou `AGENTS.md` ou `copilot-instructions.md` no template?** Esses arquivos **não são protegidos** pelo setup, então serão sobrescritos na próxima execução. Use isso pra puxar atualizações. `CLAUDE.md` continua protegido (não sobrescreve) pra preservar customizações locais.
 
 ---
 
@@ -198,7 +246,7 @@ thiago-dev-template/
 │   │   ├── session-context.sh
 │   │   └── stop-notify.sh
 │   ├── skills/
-│   │   └── [24 skills]
+│   │   └── [23 skills]
 │   └── settings.json
 ├── .github/
 │   ├── prompts/
@@ -206,17 +254,19 @@ thiago-dev-template/
 │   │   ├── opsx-archive.prompt.md
 │   │   ├── opsx-explore.prompt.md
 │   │   └── opsx-propose.prompt.md
-│   └── skills/
-│       ├── openspec-apply-change/
-│       ├── openspec-archive-change/
-│       ├── openspec-explore/
-│       └── openspec-propose/
+│   ├── skills/
+│   │   ├── openspec-apply-change/
+│   │   ├── openspec-archive-change/
+│   │   ├── openspec-explore/
+│   │   └── openspec-propose/
+│   └── copilot-instructions.md     ← VSCode Copilot Agent
 ├── openspec/
 │   ├── changes/
 │   │   └── archive/
 │   ├── specs/
-│   └── config.yaml
-├── CLAUDE.md
+│   └── config.yaml                 ← stack + convenções injetadas em specs
+├── AGENTS.md                       ← multi-tool (Aider, Continue, Cursor, Codex)
+├── CLAUDE.md                       ← Claude Code (protegido contra sobrescrita)
 ├── setup.ps1
 └── README.md
 ```
