@@ -1,6 +1,10 @@
 # Project: [App Name]
 
-> A fullstack TypeScript application built with TanStack Start, tRPC, better-auth, Drizzle ORM, and Biome.
+> **Note:** `[App Name]` is a placeholder. Replace it with the actual project name after forking this template.
+>
+> A fullstack TypeScript application built with **TanStack Router** (NOT TanStack Start), **tRPC v11**, **Better-Auth**, **Drizzle ORM**, and **Ultracite** (Biome-based linter/formatter).
+>
+> **Multi-tool note:** This `CLAUDE.md` is read by Claude Code only. For other agents (Aider, Continue, Cursor, Codex), see `AGENTS.md` in the repo root. For GitHub Copilot specifically, see `.github/copilot-instructions.md`.
 
 ## Tech Stack
 
@@ -333,4 +337,111 @@ export const Route = createFileRoute('/_authed')({
 - Test tRPC procedures directly using `createCallerFactory`
 - Test components with @testing-library/react
 - Mock tRPC at the procedure level, not at the network level
+
+## Spec-Driven Workflow (OpenSpec)
+
+This project uses **OpenSpec** for spec-driven development. Before implementing any non-trivial feature, create a spec.
+
+### Workflow
+
+```
+1. Brainstorm        → ask clarifying questions if scope is unclear
+2. Explore codebase  → /opsx:explore <topic>  (or read openspec/specs/ manually)
+3. Write spec        → /opsx:propose <feature-name>
+                       (creates openspec/changes/<name>/proposal.md + design.md + tasks.md)
+4. User reviews      → HARD GATE: do NOT implement until user approves proposal.md
+5. Implement         → /opsx:apply  (executes tasks.md step by step)
+6. Code review       → between tasks / or before PR
+7. Finish            → /opsx:apply finishes by typecheck + check + test
+                       then git push -u origin HEAD && gh pr create --fill
+8. Archive           → /opsx:archive  (after deploy; moves to openspec/changes/archive/)
+```
+
+### Read these files before any feature work
+
+- `openspec/changes/<feature>/proposal.md` — what & why
+- `openspec/changes/<feature>/design.md` — how
+- `openspec/changes/<feature>/tasks.md` — step-by-step
+- `openspec/config.yaml` — project context (stack, conventions, rules)
+
+### Definition of Done for any feature
+
+- All tasks in `tasks.md` are committed (3-5 commits per feature, conventional prefix)
+- `bun typecheck` passes
+- `bun check` (Ultracite/Biome) passes
+- `bun test` passes
+- PR opened with `gh pr create --fill`
+- User has reviewed the PR diff before merge
+
+## Parallel Features Workflow
+
+When the user has **2 or more independent features** to ship and they don't share files, use the **parallel workflow** instead of the sequential one above.
+
+### When to use
+
+- 2+ features or fixes that are independent
+- Each feature is large enough to warrant its own spec
+- User has signaled they want parallelism ("paraleliza", "em paralelo", "várias ao mesmo tempo")
+
+### When NOT to use
+
+- Only 1 feature → use the sequential workflow above
+- Features with hard dependency (B depends on A) → ship A first, then B
+- Single fix / one-line change → overkill
+- Refactor touching 1 shared file → can't parallelize, do sequential
+
+### Hard gate: independence audit
+
+Before creating worktrees, prove the features are independent. If any of these is true, do NOT parallelize:
+
+- Both features need a migration in the same table (schema gate)
+- Both features edit the same router file (file gate)
+- Both features depend on each other to compile/test (compile gate)
+- Both need to run a long-lived dev server on same port (port gate)
+
+### Pattern
+
+1. **Independence audit** (hard gate — refuse to parallelize if it fails)
+2. **Create N worktrees:**
+   ```bash
+   mkdir -p .worktrees
+   echo "/.worktrees/" >> .gitignore
+   git worktree add .worktrees/<repo>-<feat> -b feat/<feat>
+   ```
+3. **Dispatch N openspec-propose in parallel** (one subagent per worktree, max 3 concurrent)
+4. **User reviews all specs** before any implementation starts
+5. **Dispatch N openspec-apply in parallel** (one subagent per worktree)
+6. **Ship N PRs** — one per feature, branched from main
+
+### Brief template per feature (paste into each subagent prompt)
+
+```markdown
+You are running in worktree `<abs-path>` on branch `feat/<name>`.
+
+SCOPE (do only this):
+- <1-3 bullets>
+
+DO NOT TOUCH:
+- Any file under `packages/<other-feature>/`
+- Any file under `apps/<unrelated-area>/`
+- The shared `packages/db/src/schema/<unrelated-table>.ts`
+
+DELIVERABLES:
+- openspec/changes/<name>/{proposal.md,design.md,tasks.md}
+- openspec/changes/<name>/specs/<capability>/spec.md
+
+DEFINITION OF DONE:
+- Every requirement has acceptance scenarios
+- Every task has a test/verify step
+- Spec lists exact files to create/modify
+- No mention of files outside SCOPE
+```
+
+### Anti-patterns
+
+- Spawn N agents with the same prompt and hope → always give a brief
+- Skip the independence audit because features "look different" → audit first, always
+- Start implementation before user reviews specs → mandatory review gate
+- Edit files outside scope to "help" another agent → stop and re-dispatch
+- Merge multiple features into one mega-PR → one PR per feature, always
 - No snapshot tests — they rot quickly
